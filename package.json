@@ -1,6 +1,6 @@
 
   {
-      "name": "Campus-Link Web App Interface",
+      "name": "Campus-Link",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
