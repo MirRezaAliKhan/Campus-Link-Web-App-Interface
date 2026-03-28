@@ -1,13 +1,12 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./src/config/database');
 
 // Import routes
-const authRoutes = require('./src/routes/authRoutes');
-const studentRoutes = require('./src/routes/studentRoutes');
-const recruiterRoutes = require('./src/routes/recruiterRoutes');
-const applicationRoutes = require('./src/routes/applicationRoutes');
+const authRoutes = require('./routes/authRoutes');
+const studentRoutes = require('./routes/studentRoutes');
+const recruiterRoutes = require('./routes/recruiterRoutes');
+const applicationRoutes = require('./routes/applicationRoutes');
 
 // Initialize Express
 const app = express();
@@ -17,9 +16,6 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173'
 }));
 app.use(express.json());
-
-// Connect to Database
-connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);

@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           Int              @id @default(autoincrement())
+  email        String           @unique
+  password     String
+  firstName    String
+  lastName     String
+  role         String
+  profileImage String?
+  isVerified   Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  studentProfile   StudentProfile?
+  recruiterProfile RecruiterProfile?
+}
+
+model StudentProfile {
+  id              Int       @id @default(autoincrement())
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          Int       @unique
+  university      String
+  degree          String
+  branch          String
+  currentYear     Int
+  cgpa            Float
+  about           String?
+  linkedinUrl     String?
+  portfolioUrl    String?
+  githubUsername  String?
+  skills          String    @default("[]")
+  projects        String    @default("[]")
+  internships     String    @default("[]")
+  achievements    String    @default("[]")
+  uss             String    @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  applications    Application[]
+}
+
+model RecruiterProfile {
+  id                Int       @id @default(autoincrement())
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            Int       @unique
+  companyName       String
+  industry          String
+  companySize       String
+  location          String
+  companyWebsite    String?
+  description       String?
+  scoringWeights    String    @default("{}")
+  filterPreferences String    @default("{}")
+  viewedCandidates  String    @default("[]")
+  hiringRoles       String    @default("[]")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  applications      Application[]
+}
+
+model Application {
+  id           Int       @id @default(autoincrement())
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId    Int
+  recruiter    RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  recruiterId  Int
+  roleId       String
+  roleName     String
+  coverLetter  String
+  status       String   @default("applied")
+  ussScore     Float
+  matchScore   Float
+  appliedAt    DateTime @default(now())
+  statusUpdatedAt DateTime? 
+}
