@@ -42,7 +42,7 @@ export function RecruiterWeightSliders({ onNavigate, onLogout }) {
     }));
   };
 
-  const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
+  const totalWeight = Object.values(weights).reduce((a: number, b: any) => a + b, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 p-6">
