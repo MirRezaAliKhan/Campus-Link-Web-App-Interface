@@ -4,7 +4,7 @@
 
 Campus-Link is now a **complete full-stack AI-powered placement platform** with:
 
-### Backend (Node.js + Express + MongoDB)
+### Backend (Node.js + Express + Prisma + SQLite)
 - User authentication (JWT)
 - USS (Universal Standard Score) calculation engine
 - Student profile management
@@ -33,17 +33,18 @@ npm install
 2. **Create `.env` file**
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/campus-link
 JWT_SECRET=your_secure_random_key_here_change_in_production
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173
 ```
 
-3. **Start MongoDB** (Make sure MongoDB is running)
+3. **Setup SQLite database with Prisma**
 ```bash
-# On Windows with MongoDB installed locally
-mongod
+cd backend
+npx prisma db push
+npm run seed
 ```
+
 
 4. **Seed Demo Data**
 ```bash

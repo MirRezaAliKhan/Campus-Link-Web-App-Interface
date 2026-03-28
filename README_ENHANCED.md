@@ -41,7 +41,7 @@ Campus-Link replaces traditional placement systems with an **adaptive, transpare
 
 ### Backend
 - **Node.js** + Express.js (API Server)
-- **MongoDB** (NoSQL Database)
+- **Prisma** + **SQLite** (SQL Database)
 - **JWT** (Authentication)
 - **bcryptjs** (Password Hashing)
 
@@ -95,8 +95,10 @@ Backend: http://localhost:5000
 ```bash
 cd backend
 npm install
-# Create .env file with MongoDB URI and JWT secret
-npm run seed      # Load demo data
+# Create .env file with JWT secret and optional CORS settings
+# then apply Prisma schema and seed demo data
+npx prisma db push
+npm run seed
 npm run dev       # Start on port 5000
 ```
 
