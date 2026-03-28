@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { ArrowRight, TrendingUp, Shield, Zap, BarChart3, Users, CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/button';
 
-export function LandingPage({ onGetStarted }) {
+interface LandingPageProps {
+  onGetStarted: (role: 'student' | 'recruiter') => void;
+}
+
+export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   const [activeTab, setActiveTab] = useState('comparison');
 
   return (
@@ -312,4 +316,4 @@ export function LandingPage({ onGetStarted }) {
       </footer>
     </div>
   );
-}
+};
