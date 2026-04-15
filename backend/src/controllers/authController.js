@@ -33,11 +33,13 @@ exports.register = async (req, res) => {
           branch: '',
           currentYear: 1,
           cgpa: 0,
-          skills: [],
-          projects: [],
-          internships: [],
-          achievements: [],
-          uss: { score: 0, confidence: 0, breakdown: {} }
+          skills: JSON.stringify([]),
+          projects: JSON.stringify([]),
+          internships: JSON.stringify([]),
+          achievements: JSON.stringify([]),
+          careerGoals: JSON.stringify([]),
+          readinessMetrics: JSON.stringify({}),
+          uss: JSON.stringify({ score: 0, confidence: 0, breakdown: {} })
         }
       });
     } else if (role === 'recruiter') {
@@ -48,24 +50,24 @@ exports.register = async (req, res) => {
           industry: '',
           companySize: 'medium',
           location: '',
-          scoringWeights: {
+          scoringWeights: JSON.stringify({
             academics: 20,
             skills: 30,
             projects: 25,
             experience: 15,
             achievements: 10,
             verificationBonus: 5
-          },
-          filterPreferences: {
+          }),
+          filterPreferences: JSON.stringify({
             minimumUssScore: 50,
             minimumCgpa: 0,
             preferredSkills: [],
             verifiedOnly: false,
             preferredBranches: [],
             preferredYears: []
-          },
-          viewedCandidates: [],
-          hiringRoles: []
+          }),
+          viewedCandidates: JSON.stringify([]),
+          hiringRoles: JSON.stringify([])
         }
       });
     }

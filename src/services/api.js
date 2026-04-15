@@ -107,6 +107,38 @@ export const studentAPI = {
       headers: getHeaders()
     });
     return response.json();
+  },
+
+  getCareerPlan: async () => {
+    const response = await fetch(`${API_BASE_URL}/student/career-plan`, {
+      headers: getHeaders()
+    });
+    return response.json();
+  },
+
+  updateCareerGoals: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/student/career-goals`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  },
+
+  createMentorRequest: async (requestData) => {
+    const response = await fetch(`${API_BASE_URL}/student/mentor-requests`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(requestData)
+    });
+    return response.json();
+  },
+
+  getMentorRequests: async () => {
+    const response = await fetch(`${API_BASE_URL}/student/mentor-requests`, {
+      headers: getHeaders()
+    });
+    return response.json();
   }
 };
 
@@ -160,11 +192,32 @@ export const recruiterAPI = {
     return response.json();
   },
 
-  addHiringRole: async (roleData) => {
+  getRolePosts: async () => {
+    const response = await fetch(`${API_BASE_URL}/recruiter/roles`, {
+      headers: getHeaders()
+    });
+    return response.json();
+  },
+
+  createRolePost: async (roleData) => {
     const response = await fetch(`${API_BASE_URL}/recruiter/roles`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(roleData)
+    });
+    return response.json();
+  },
+
+  getMentorRequests: async () => {
+    const response = await fetch(`${API_BASE_URL}/recruiter/mentor-requests`, {
+      headers: getHeaders()
+    });
+    return response.json();
+  },
+
+  getRoleApplicants: async (roleId) => {
+    const response = await fetch(`${API_BASE_URL}/recruiter/role-applicants/${roleId}`, {
+      headers: getHeaders()
     });
     return response.json();
   }
