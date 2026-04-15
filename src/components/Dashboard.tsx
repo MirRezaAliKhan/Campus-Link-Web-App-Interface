@@ -6,7 +6,8 @@ import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { AddSkillDialog } from './AddSkillDialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { studentAPI } from '../services/api';
 import { 
   TrendingUp, 
   Award, 
@@ -55,10 +56,62 @@ const recentActivities = [
 
 export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
   const [showAddSkillDialog, setShowAddSkillDialog] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [careerGoalsText, setCareerGoalsText] = useState('');
+  const [nextActionText, setNextActionText] = useState('');
+  const [mentorSubject, setMentorSubject] = useState('');
+  const [mentorMessage, setMentorMessage] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadStudentData();
+  }, []);
+
+  const loadStudentData = async () => {
+    try {
+      setLoading(true);
+      const [profileData, suggestionsData] = await Promise.all([studentAPI.getProfile(), studentAPI.getUssSuggestions()]);
+      setProfile(profileData);
+      setSuggestions(suggestionsData.suggestions || []);
+    } catch (error) {
+      console.error('Error loading student data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddSkill = (skill: { name: string; category: string; level: number }) => {
     console.log('New skill added:', skill);
     // In a real app, this would save to database
+  };
+
+  const handleSaveCareerGoals = async () => {
+    try {
+      const goals = careerGoalsText.split(',').map(goal => goal.trim()).filter(Boolean);
+      const nextActions = nextActionText.split(',').map(action => action.trim()).filter(Boolean);
+      const result = await studentAPI.updateCareerGoals({ goals, nextActions });
+      if (result.careerPlan) {
+        setProfile((prev: any) => ({ ...prev, careerPlan: result.careerPlan }));
+        setStatusMessage('Career goals saved successfully.');
+      }
+    } catch (error) {
+      console.error(error);
+      setStatusMessage('Unable to save career goals right now.');
+    }
+  };
+
+  const handleSendMentorRequest = async () => {
+    try {
+      await studentAPI.createMentorRequest({ subject: mentorSubject, message: mentorMessage });
+      setStatusMessage('Mentor request submitted successfully.');
+      setMentorSubject('');
+      setMentorMessage('');
+    } catch (error) {
+      console.error(error);
+      setStatusMessage('Unable to send mentor request.');
+    }
   };
 
   const handleLogoClick = () => {
@@ -79,16 +132,16 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
                 <AvatarFallback>RZ</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-2xl lg:text-3xl mb-1">Welcome back, Reza! 👋</h1>
-                <p className="text-blue-100">MIT • Computer Science • Class of 2025</p>
+                <h1 className="text-2xl lg:text-3xl mb-1">Welcome back!</h1>
+                <p className="text-blue-100">{profile?.university || 'Career growth journey'} • {profile?.branch || 'Talent Accelerator'}</p>
               </div>
             </div>
             <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 lg:p-6 text-center min-w-[140px]">
               <div className="text-sm text-blue-100 mb-1">USS Score</div>
-              <div className="text-4xl lg:text-5xl">88</div>
+              <div className="text-4xl lg:text-5xl">{Math.round(profile?.uss?.score || 0)}</div>
               <div className="text-sm text-green-300 mt-1 flex items-center justify-center gap-1">
                 <TrendingUp className="w-4 h-4" />
-                +3 this week
+                Score update
               </div>
             </div>
           </div>
@@ -101,10 +154,10 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
               <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                 <Target className="w-5 h-5 text-blue-600" />
               </div>
-              <div className="text-2xl lg:text-3xl text-gray-900">3.85</div>
+              <div className="text-2xl lg:text-3xl text-gray-900">{profile?.cgpa ?? 0}</div>
             </div>
             <div className="text-sm text-gray-600">GPA</div>
-            <Progress value={96} className="mt-2 h-1.5" />
+            <Progress value={Math.min((profile?.cgpa ?? 0) * 10, 100)} className="mt-2 h-1.5" />
           </Card>
 
           <Card className="p-4 lg:p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200 hover:shadow-lg transition-all">
@@ -112,10 +165,10 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
               <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-purple-600" />
               </div>
-              <div className="text-2xl lg:text-3xl text-gray-900">24</div>
+              <div className="text-2xl lg:text-3xl text-gray-900">{profile?.skills?.length ?? 0}</div>
             </div>
             <div className="text-sm text-gray-600">Skills</div>
-            <Progress value={75} className="mt-2 h-1.5" />
+            <Progress value={Math.min(profile?.skills?.length * 10, 100)} className="mt-2 h-1.5" />
           </Card>
 
           <Card className="p-4 lg:p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200 hover:shadow-lg transition-all">
@@ -123,10 +176,10 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
               <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
                 <Award className="w-5 h-5 text-amber-600" />
               </div>
-              <div className="text-2xl lg:text-3xl text-gray-900">12</div>
+              <div className="text-2xl lg:text-3xl text-gray-900">{profile?.achievements?.length ?? 0}</div>
             </div>
             <div className="text-sm text-gray-600">Achievements</div>
-            <Progress value={60} className="mt-2 h-1.5" />
+            <Progress value={Math.min((profile?.achievements?.length ?? 0) * 10, 100)} className="mt-2 h-1.5" />
           </Card>
 
           <Card className="p-4 lg:p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200 hover:shadow-lg transition-all">
@@ -212,9 +265,8 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
           </Card>
         </div>
 
-        {/* Quick Actions & Activity */}
+        {/* Career Plan & Mentorship */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Quick Actions */}
           <Card className="lg:col-span-1 p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200">
             <h3 className="text-gray-900 mb-4">Quick Actions</h3>
             <div className="space-y-3">
@@ -252,7 +304,84 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
             </div>
           </Card>
 
-          {/* Recent Activity */}
+          <Card className="lg:col-span-2 p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200">
+            <h3 className="text-gray-900 mb-4">Career Plan</h3>
+            <div className="grid gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <p className="text-sm text-slate-500 mb-2">Goals</p>
+                  {profile?.careerPlan?.goals?.length > 0 ? (
+                    <ul className="space-y-2 text-sm text-slate-700">
+                      {profile.careerPlan.goals.map((goal: string, index: number) => (
+                        <li key={index} className="rounded-xl bg-white p-3 border border-slate-200">{goal}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-500">No career goals set yet.</p>
+                  )}
+                </div>
+
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <p className="text-sm text-slate-500 mb-2">Next Actions</p>
+                  {profile?.careerPlan?.nextActions?.length > 0 ? (
+                    <ul className="space-y-2 text-sm text-slate-700">
+                      {profile.careerPlan.nextActions.map((action: string, index: number) => (
+                        <li key={index} className="rounded-xl bg-white p-3 border border-slate-200">{action}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-500">Add actions to move closer to your goals.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    value={careerGoalsText}
+                    onChange={(e) => setCareerGoalsText(e.target.value)}
+                    placeholder="List goals separated by commas"
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                  />
+                  <input
+                    value={nextActionText}
+                    onChange={(e) => setNextActionText(e.target.value)}
+                    placeholder="List next actions separated by commas"
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                  />
+                </div>
+                <Button className="w-full bg-blue-600 text-white hover:bg-blue-700" onClick={handleSaveCareerGoals}>
+                  Save Career Plan
+                </Button>
+              </div>
+              {statusMessage && <p className="text-sm text-green-600">{statusMessage}</p>}
+            </div>
+          </Card>
+
+          <Card className="lg:col-span-1 p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200">
+            <h3 className="text-gray-900 mb-4">Mentor Request</h3>
+            <div className="space-y-4">
+              <input
+                value={mentorSubject}
+                onChange={(e) => setMentorSubject(e.target.value)}
+                placeholder="Request subject"
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+              />
+              <textarea
+                value={mentorMessage}
+                onChange={(e) => setMentorMessage(e.target.value)}
+                placeholder="Describe what help you need"
+                className="w-full min-h-[120px] rounded-2xl border border-slate-200 px-4 py-3 resize-none"
+              />
+              <Button className="w-full bg-green-600 text-white hover:bg-green-700" onClick={handleSendMentorRequest}>
+                Send Mentor Request
+              </Button>
+              {statusMessage && <p className="text-sm text-green-600">{statusMessage}</p>}
+            </div>
+          </Card>
+        </div>
+
+        {/* Recent Activity */}
           <Card className="lg:col-span-2 p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200">
             <h3 className="text-gray-900 mb-4">Recent Activity</h3>
             <div className="space-y-4">

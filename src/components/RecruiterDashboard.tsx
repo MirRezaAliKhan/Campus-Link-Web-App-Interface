@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { recruiterAPI } from '../services/api';
 import { 
   Search, 
   Settings, 
@@ -113,6 +114,24 @@ const skillDemandData = [
 export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [rolePosts, setRolePosts] = useState<any[]>([]);
+  const [roleLoading, setRoleLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRolePosts = async () => {
+      try {
+        setRoleLoading(true);
+        const posts = await recruiterAPI.getRolePosts();
+        setRolePosts(posts || []);
+      } catch (error) {
+        console.error('Error loading role posts:', error);
+      } finally {
+        setRoleLoading(false);
+      }
+    };
+
+    loadRolePosts();
+  }, []);
 
   const filteredCandidates = topCandidates.filter(candidate =>
     candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -248,7 +267,7 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
                 <Briefcase className="w-6 h-6" />
               </div>
             </div>
-            <p className="text-3xl mb-1">24</p>
+            <p className="text-3xl mb-1">{roleLoading ? '...' : rolePosts.length}</p>
             <p className="text-sm text-purple-100">Active Job Postings</p>
           </Card>
 
