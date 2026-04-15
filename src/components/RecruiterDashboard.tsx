@@ -129,6 +129,9 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
     positions: '1'
   });
   const [rolePostStatus, setRolePostStatus] = useState('');
+  const [selectedRole, setSelectedRole] = useState<any | null>(null);
+  const [roleApplicants, setRoleApplicants] = useState<any[]>([]);
+  const [applicantLoading, setApplicantLoading] = useState(false);
 
   useEffect(() => {
     const loadRecruiterData = async () => {
@@ -192,6 +195,20 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
     } catch (error) {
       console.error('Error creating role post:', error);
       setRolePostStatus('Unable to create role post right now.');
+    }
+  };
+
+  const handleViewApplicants = async (roleId: number, roleTitle: string) => {
+    setApplicantLoading(true);
+    setSelectedRole({ id: roleId, title: roleTitle });
+    try {
+      const applicants = await recruiterAPI.getRoleApplicants(roleId);
+      setRoleApplicants(Array.isArray(applicants) ? applicants : []);
+    } catch (error) {
+      console.error('Error loading applicants:', error);
+      setRoleApplicants([]);
+    } finally {
+      setApplicantLoading(false);
     }
   };
 
@@ -398,13 +415,21 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
                     <Badge className="bg-green-100 text-green-700 border-green-200">{Math.round(role.minUss || 0)} USS</Badge>
                   </div>
                   <p className="text-sm text-slate-700 mb-2">{role.description}</p>
-                  <div className="flex flex-wrap gap-2 text-xs">
+                  <div className="flex flex-wrap gap-2 text-xs mb-3">
                     {(role.requiredSkills || []).slice(0, 4).map((skill, idx) => (
                       <Badge key={idx} variant="outline" className="bg-white text-slate-700 border-slate-200">
                         {skill}
                       </Badge>
                     ))}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => handleViewApplicants(role.id, role.title)}
+                  >
+                    View Applicants
+                  </Button>
                 </div>
               ))}
             </div>
@@ -473,6 +498,42 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
               Post Role
             </Button>
           </div>
+        </Card>
+
+        {/* Applicants for Selected Role */}
+        <Card className="p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-gray-900 text-lg font-semibold">Applicants</h3>
+              <p className="text-sm text-slate-500">Review candidates who applied to your selected role.</p>
+            </div>
+            <span className="text-sm text-slate-500">{selectedRole ? selectedRole.title : 'Pick a role above'}</span>
+          </div>
+          {selectedRole ? (
+            applicantLoading ? (
+              <p className="text-sm text-slate-500">Loading applicants...</p>
+            ) : roleApplicants.length > 0 ? (
+              <div className="space-y-3">
+                {roleApplicants.map((app) => (
+                  <div key={app.id} className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
+                    <div className="flex items-center justify-between gap-4 mb-2">
+                      <div>
+                        <p className="font-semibold text-slate-900">{app.student?.user ? `${app.student.user.firstName} ${app.student.user.lastName}` : 'Candidate'}</p>
+                        <p className="text-sm text-slate-500">{app.student?.branch || app.student?.university || 'Student profile'}</p>
+                      </div>
+                      <Badge className="bg-blue-100 text-blue-700 border-blue-200">USS: {app.student?.uss?.score ?? '—'}</Badge>
+                    </div>
+                    <p className="text-sm text-slate-700 mb-2">Applied: {new Date(app.appliedAt).toLocaleDateString()}</p>
+                    <div className="text-xs text-slate-500">{app.student?.user?.email}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">No applicants have applied to this role yet.</p>
+            )
+          ) : (
+            <p className="text-sm text-slate-500">Select a role post above to see applicant details.</p>
+          )}
         </Card>
 
         {/* Quick Actions and Top Candidates */}
