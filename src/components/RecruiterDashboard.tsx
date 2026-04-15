@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { recruiterAPI } from '../services/api';
@@ -116,22 +117,83 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [rolePosts, setRolePosts] = useState<any[]>([]);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(true);
+  const [newRoleData, setNewRoleData] = useState({
+    title: '',
+    description: '',
+    location: '',
+    salaryRange: '',
+    minUss: '',
+    requiredSkills: '',
+    positions: '1'
+  });
+  const [rolePostStatus, setRolePostStatus] = useState('');
 
   useEffect(() => {
-    const loadRolePosts = async () => {
+    const loadRecruiterData = async () => {
       try {
         setRoleLoading(true);
-        const posts = await recruiterAPI.getRolePosts();
+        setCandidatesLoading(true);
+        const [posts, candidateList] = await Promise.all([
+          recruiterAPI.getRolePosts(),
+          recruiterAPI.getCandidates()
+        ]);
+
         setRolePosts(posts || []);
+        setCandidates(Array.isArray(candidateList) ? candidateList : []);
       } catch (error) {
-        console.error('Error loading role posts:', error);
+        console.error('Error loading recruiter data:', error);
       } finally {
         setRoleLoading(false);
+        setCandidatesLoading(false);
       }
     };
 
-    loadRolePosts();
+    loadRecruiterData();
   }, []);
+
+  const handleNewRoleChange = (field: keyof typeof newRoleData, value: string) => {
+    setNewRoleData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateRolePost = async () => {
+    try {
+      setRolePostStatus('');
+      const payload = {
+        title: newRoleData.title,
+        description: newRoleData.description,
+        location: newRoleData.location,
+        salaryRange: newRoleData.salaryRange,
+        minUss: Number(newRoleData.minUss),
+        positions: Number(newRoleData.positions),
+        requiredSkills: newRoleData.requiredSkills.split(',').map((skill) => skill.trim()).filter(Boolean),
+        preferredExperience: null,
+        cultureTags: []
+      };
+
+      const result = await recruiterAPI.createRolePost(payload);
+      if (result.role) {
+        setRolePostStatus('Role posted successfully.');
+        setNewRoleData({
+          title: '',
+          description: '',
+          location: '',
+          salaryRange: '',
+          minUss: '',
+          requiredSkills: '',
+          positions: '1'
+        });
+        const posts = await recruiterAPI.getRolePosts();
+        setRolePosts(posts || []);
+      } else {
+        setRolePostStatus(result.message || 'Unable to create role.');
+      }
+    } catch (error) {
+      console.error('Error creating role post:', error);
+      setRolePostStatus('Unable to create role post right now.');
+    }
+  };
 
   const filteredCandidates = topCandidates.filter(candidate =>
     candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -142,6 +204,14 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
   const handleLogoClick = () => {
     onNavigate('dashboard');
   };
+
+  const candidateSource = candidates.length > 0 ? candidates : topCandidates;
+  const getCandidateName = (candidate: any) => candidate.user ? `${candidate.user.firstName} ${candidate.user.lastName}` : candidate.name;
+  const getCandidateUniversity = (candidate: any) => candidate.university || candidate.branch || candidate.degree || 'University';
+  const getCandidateSkills = (candidate: any) =>
+    (candidate.skills || []).map((skill: any) => typeof skill === 'string' ? skill : skill.name || skill).slice(0, 2);
+  const getCandidateUss = (candidate: any) => candidate.customUss?.score ?? (typeof candidate.uss === 'object' ? candidate.uss?.score : candidate.uss) ?? 0;
+  const getCandidateMatch = (candidate: any) => candidate.matchPercentage ?? candidate.match ?? 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
@@ -343,6 +413,68 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
           )}
         </Card>
 
+        {/* Role Posting */}
+        <Card className="p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-gray-900 text-lg font-semibold">Post a New Role</h3>
+              <p className="text-sm text-slate-500">Create a fresh job posting and reach qualified candidates.</p>
+            </div>
+            <span className="text-sm text-slate-500">{rolePostStatus}</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            <Input
+              value={newRoleData.title}
+              onChange={(e) => handleNewRoleChange('title', e.target.value)}
+              placeholder="Role title"
+            />
+            <Textarea
+              value={newRoleData.description}
+              onChange={(e) => handleNewRoleChange('description', e.target.value)}
+              placeholder="Role description"
+              className="min-h-[120px]"
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                value={newRoleData.location}
+                onChange={(e) => handleNewRoleChange('location', e.target.value)}
+                placeholder="Location"
+              />
+              <Input
+                value={newRoleData.salaryRange}
+                onChange={(e) => handleNewRoleChange('salaryRange', e.target.value)}
+                placeholder="Salary range"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                value={newRoleData.minUss}
+                onChange={(e) => handleNewRoleChange('minUss', e.target.value)}
+                placeholder="Min USS"
+                type="number"
+              />
+              <Input
+                value={newRoleData.positions}
+                onChange={(e) => handleNewRoleChange('positions', e.target.value)}
+                placeholder="Open positions"
+                type="number"
+              />
+              <Input
+                value={newRoleData.requiredSkills}
+                onChange={(e) => handleNewRoleChange('requiredSkills', e.target.value)}
+                placeholder="Required skills (comma separated)"
+              />
+            </div>
+            <Button
+              className="w-full bg-purple-600 text-white hover:bg-purple-700"
+              onClick={handleCreateRolePost}
+            >
+              Post Role
+            </Button>
+          </div>
+        </Card>
+
         {/* Quick Actions and Top Candidates */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions Panel */}
@@ -424,9 +556,9 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
             </div>
 
             <div className="space-y-3">
-              {topCandidates.map((candidate, index) => (
+              {candidateSource.map((candidate, index) => (
                 <button
-                  key={candidate.id}
+                  key={candidate.id || index}
                   className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all border border-gray-100 hover:border-purple-200 hover:shadow-md"
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -439,15 +571,15 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
                   </div>
 
                   <Avatar className="w-12 h-12 ring-2 ring-white shadow-md">
-                    <AvatarImage src={candidate.photo} />
-                    <AvatarFallback>{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarImage src={candidate.user?.profileImage || candidate.photo || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Recruiter'} />
+                    <AvatarFallback>{getCandidateName(candidate).split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 text-left">
-                    <p className="text-gray-900">{candidate.name}</p>
-                    <p className="text-sm text-gray-600">{candidate.university}</p>
+                    <p className="text-gray-900">{getCandidateName(candidate)}</p>
+                    <p className="text-sm text-gray-600">{getCandidateUniversity(candidate)}</p>
                     <div className="flex gap-1 mt-1">
-                      {candidate.skills.slice(0, 2).map((skill, idx) => (
+                      {getCandidateSkills(candidate).map((skill: string, idx: number) => (
                         <Badge key={idx} variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
                           {skill}
                         </Badge>
@@ -456,9 +588,9 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
                   </div>
 
                   <div className="text-right">
-                    <p className="text-gray-900">USS: {candidate.uss}</p>
+                    <p className="text-gray-900">USS: {getCandidateUss(candidate)}</p>
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 mt-1">
-                      {candidate.match}% Match
+                      {getCandidateMatch(candidate)}% Match
                     </Badge>
                   </div>
                 </button>
