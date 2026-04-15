@@ -265,6 +265,26 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
           </Card>
         </div>
 
+        {/* Personalized Suggestions */}
+        <Card className="p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200">
+          <h3 className="text-gray-900 mb-4">Personalized Suggestions</h3>
+          {suggestions.length > 0 ? (
+            <div className="space-y-3">
+              {suggestions.map((suggestion, index) => (
+                <div key={index} className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-slate-900">{suggestion.category}</p>
+                    <span className="text-xs text-slate-500">{suggestion.impact}</span>
+                  </div>
+                  <p className="text-sm text-slate-700">{suggestion.suggestion}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-slate-500">No recommendations right now. Your profile looks strong.</p>
+          )}
+        </Card>
+
         {/* Career Plan & Mentorship */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1 p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200">
@@ -378,6 +398,26 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
               </Button>
               {statusMessage && <p className="text-sm text-green-600">{statusMessage}</p>}
             </div>
+          </Card>
+
+          <Card className="lg:col-span-2 p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200">
+            <h3 className="text-gray-900 mb-4">Mentor Requests</h3>
+            {mentorRequests.length > 0 ? (
+              <div className="space-y-3">
+                {mentorRequests.map((request, index) => (
+                  <div key={request.id || index} className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-semibold text-slate-900">{request.subject}</p>
+                      <span className="text-xs text-slate-500 uppercase">{request.status}</span>
+                    </div>
+                    <p className="text-sm text-slate-700 mb-2">{request.message}</p>
+                    <div className="text-xs text-slate-500">Submitted: {new Date(request.createdAt).toLocaleDateString()}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500">No mentor requests yet. Submit one to connect with a mentor.</p>
+            )}
           </Card>
         </div>
 

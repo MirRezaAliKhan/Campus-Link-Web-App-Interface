@@ -305,6 +305,44 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
           </Card>
         </div>
 
+        {/* Open Roles */}
+        <Card className="p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-gray-900 text-lg font-semibold">Open Roles</h3>
+              <p className="text-sm text-slate-500">Your current job listings from Campus-Link</p>
+            </div>
+            <span className="text-sm text-slate-500">{roleLoading ? 'Loading...' : `${rolePosts.length} active`}</span>
+          </div>
+          {roleLoading ? (
+            <p className="text-sm text-slate-500">Loading roles...</p>
+          ) : rolePosts.length > 0 ? (
+            <div className="grid gap-3">
+              {rolePosts.map((role) => (
+                <div key={role.id} className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
+                  <div className="flex items-center justify-between gap-4 mb-2">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{role.title}</p>
+                      <p className="text-xs text-slate-500">{role.location} • {role.salaryRange || 'Salary undisclosed'}</p>
+                    </div>
+                    <Badge className="bg-green-100 text-green-700 border-green-200">{Math.round(role.minUss || 0)} USS</Badge>
+                  </div>
+                  <p className="text-sm text-slate-700 mb-2">{role.description}</p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {(role.requiredSkills || []).slice(0, 4).map((skill, idx) => (
+                      <Badge key={idx} variant="outline" className="bg-white text-slate-700 border-slate-200">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">No active roles yet.</p>
+          )}
+        </Card>
+
         {/* Quick Actions and Top Candidates */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions Panel */}
