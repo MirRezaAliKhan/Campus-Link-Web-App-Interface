@@ -116,6 +116,13 @@ export const studentAPI = {
     return response.json();
   },
 
+  getOpenRoles: async () => {
+    const response = await fetch(`${API_BASE_URL}/student/roles`, {
+      headers: getHeaders()
+    });
+    return response.json();
+  },
+
   updateCareerGoals: async (data) => {
     const response = await fetch(`${API_BASE_URL}/student/career-goals`, {
       method: 'POST',

@@ -58,6 +58,9 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
   const [showAddSkillDialog, setShowAddSkillDialog] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [rolePosts, setRolePosts] = useState<any[]>([]);
+  const [roleLoading, setRoleLoading] = useState(true);
+  const [mentorRequests, setMentorRequests] = useState<any[]>([]);
   const [careerGoalsText, setCareerGoalsText] = useState('');
   const [nextActionText, setNextActionText] = useState('');
   const [mentorSubject, setMentorSubject] = useState('');
@@ -72,13 +75,27 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
   const loadStudentData = async () => {
     try {
       setLoading(true);
-      const [profileData, suggestionsData] = await Promise.all([studentAPI.getProfile(), studentAPI.getUssSuggestions()]);
-      setProfile(profileData);
+      setRoleLoading(true);
+      const [profileData, suggestionsData, careerPlanData, mentorRequestsData, rolePostsData] = await Promise.all([
+        studentAPI.getProfile(),
+        studentAPI.getUssSuggestions(),
+        studentAPI.getCareerPlan(),
+        studentAPI.getMentorRequests(),
+        studentAPI.getOpenRoles()
+      ]);
+      setProfile({ ...profileData, careerPlan: careerPlanData });
       setSuggestions(suggestionsData.suggestions || []);
+      setMentorRequests(Array.isArray(mentorRequestsData) ? mentorRequestsData : []);
+      setRolePosts(Array.isArray(rolePostsData) ? rolePostsData : []);
+      if (careerPlanData) {
+        setCareerGoalsText((careerPlanData.goals || []).join(', '));
+        setNextActionText((careerPlanData.nextActions || []).join(', '));
+      }
     } catch (error) {
       console.error('Error loading student data:', error);
     } finally {
       setLoading(false);
+      setRoleLoading(false);
     }
   };
 
@@ -108,6 +125,8 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
       setStatusMessage('Mentor request submitted successfully.');
       setMentorSubject('');
       setMentorMessage('');
+      const mentorRequestsData = await studentAPI.getMentorRequests();
+      setMentorRequests(Array.isArray(mentorRequestsData) ? mentorRequestsData : []);
     } catch (error) {
       console.error(error);
       setStatusMessage('Unable to send mentor request.');

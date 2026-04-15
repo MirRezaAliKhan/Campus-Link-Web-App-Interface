@@ -12,6 +12,7 @@ router.post('/internships', authMiddleware, roleMiddleware('student'), studentCo
 router.get('/uss-suggestions', authMiddleware, roleMiddleware('student'), studentController.getUssSuggestions);
 router.get('/career-plan', authMiddleware, roleMiddleware('student'), studentController.getCareerPlan);
 router.post('/career-goals', authMiddleware, roleMiddleware('student'), studentController.updateCareerGoals);
+router.get('/roles', authMiddleware, roleMiddleware('student'), studentController.getAvailableRoles);
 router.post('/mentor-requests', authMiddleware, roleMiddleware('student'), studentController.createMentorRequest);
 router.get('/mentor-requests', authMiddleware, roleMiddleware('student'), studentController.getMentorRequests);
 

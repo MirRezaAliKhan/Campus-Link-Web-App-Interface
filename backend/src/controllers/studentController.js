@@ -278,6 +278,13 @@ exports.getUssSuggestions = async (req, res) => {
   }
 };
 
+function parseStudentRolePost(post) {
+  const result = { ...post };
+  try { result.requiredSkills = JSON.parse(post.requiredSkills || '[]'); } catch { result.requiredSkills = []; }
+  try { result.cultureTags = JSON.parse(post.cultureTags || '[]'); } catch { result.cultureTags = []; }
+  return result;
+}
+
 exports.getCareerPlan = async (req, res) => {
   try {
     const profile = await prisma.studentProfile.findUnique({ where: { userId: Number(req.user.userId) } });
@@ -285,6 +292,15 @@ exports.getCareerPlan = async (req, res) => {
 
     const plan = await getOrCreateCareerPlan(profile.id);
     res.status(200).json(parseCareerPlan(plan));
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+exports.getAvailableRoles = async (req, res) => {
+  try {
+    const posts = await prisma.rolePost.findMany({ orderBy: { createdAt: 'desc' } });
+    res.status(200).json(posts.map(parseStudentRolePost));
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
