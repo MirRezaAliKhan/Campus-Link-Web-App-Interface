@@ -441,6 +441,7 @@ export function Dashboard({ onNavigate, onLogout, userRole }: DashboardProps) {
         </div>
 
         {/* Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="lg:col-span-2 p-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-200">
             <h3 className="text-gray-900 mb-4">Recent Activity</h3>
             <div className="space-y-4">
