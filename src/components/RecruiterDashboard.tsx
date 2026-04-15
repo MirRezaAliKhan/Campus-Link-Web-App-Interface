@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerClose } from './ui/drawer';
 import { recruiterAPI } from '../services/api';
 import { 
   Search, 
@@ -119,6 +120,9 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
   const [roleLoading, setRoleLoading] = useState(true);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(true);
+  const [candidateFilters, setCandidateFilters] = useState({ minUss: '', minMatch: '' });
+  const [candidateDetailsOpen, setCandidateDetailsOpen] = useState(false);
+  const [selectedCandidateDetail, setSelectedCandidateDetail] = useState<any>(null);
   const [newRoleData, setNewRoleData] = useState({
     title: '',
     description: '',
@@ -212,16 +216,6 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
     }
   };
 
-  const filteredCandidates = topCandidates.filter(candidate =>
-    candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    candidate.university.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    candidate.skills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const handleLogoClick = () => {
-    onNavigate('dashboard');
-  };
-
   const candidateSource = candidates.length > 0 ? candidates : topCandidates;
   const getCandidateName = (candidate: any) => candidate.user ? `${candidate.user.firstName} ${candidate.user.lastName}` : candidate.name;
   const getCandidateUniversity = (candidate: any) => candidate.university || candidate.branch || candidate.degree || 'University';
@@ -229,6 +223,36 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
     (candidate.skills || []).map((skill: any) => typeof skill === 'string' ? skill : skill.name || skill).slice(0, 2);
   const getCandidateUss = (candidate: any) => candidate.customUss?.score ?? (typeof candidate.uss === 'object' ? candidate.uss?.score : candidate.uss) ?? 0;
   const getCandidateMatch = (candidate: any) => candidate.matchPercentage ?? candidate.match ?? 0;
+
+  const filteredCandidates = candidateSource.filter((candidate) => {
+    const searchText = searchQuery.toLowerCase();
+    const matchesSearch =
+      !searchText ||
+      getCandidateName(candidate).toLowerCase().includes(searchText) ||
+      getCandidateUniversity(candidate).toLowerCase().includes(searchText) ||
+      getCandidateSkills(candidate).some((skill: string) => skill.toLowerCase().includes(searchText));
+
+    const minUss = Number(candidateFilters.minUss);
+    const minMatch = Number(candidateFilters.minMatch);
+    const meetsUss = !candidateFilters.minUss || getCandidateUss(candidate) >= minUss;
+    const meetsMatch = !candidateFilters.minMatch || getCandidateMatch(candidate) >= minMatch;
+
+    return matchesSearch && meetsUss && meetsMatch;
+  });
+
+  const handleLogoClick = () => {
+    onNavigate('dashboard');
+  };
+
+  const openCandidateDetails = (candidate: any) => {
+    setSelectedCandidateDetail(candidate);
+    setCandidateDetailsOpen(true);
+  };
+
+  const closeCandidateDetails = () => {
+    setCandidateDetailsOpen(false);
+    setSelectedCandidateDetail(null);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
@@ -293,17 +317,35 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
           {/* Search Bar */}
           <div className="relative max-w-2xl mx-auto">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search Candidates by Name / University / Skills..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSuggestions(e.target.value.length > 0);
-              }}
-              onFocus={() => setShowSuggestions(searchQuery.length > 0)}
-              className="pl-12 pr-4 py-6 bg-white border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all shadow-sm"
-            />
+            <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+              <Input
+                type="text"
+                placeholder="Search Candidates by Name / University / Skills..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSuggestions(e.target.value.length > 0);
+                }}
+                onFocus={() => setShowSuggestions(searchQuery.length > 0)}
+                className="pl-12 pr-4 py-6 bg-white border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all shadow-sm"
+              />
+              <div className="flex items-center gap-3">
+                <Input
+                  type="number"
+                  placeholder="Min USS"
+                  value={candidateFilters.minUss}
+                  onChange={(e) => setCandidateFilters((prev) => ({ ...prev, minUss: e.target.value }))}
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-4"
+                />
+                <Input
+                  type="number"
+                  placeholder="Min Match"
+                  value={candidateFilters.minMatch}
+                  onChange={(e) => setCandidateFilters((prev) => ({ ...prev, minMatch: e.target.value }))}
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-4"
+                />
+              </div>
+            </div>
 
             {/* Auto-suggest Dropdown */}
             {showSuggestions && filteredCandidates.length > 0 && (
@@ -318,14 +360,14 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
                     className="w-full flex items-center gap-4 p-4 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-b-0"
                   >
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={candidate.photo} />
-                      <AvatarFallback>{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarImage src={candidate.user?.profileImage || candidate.photo || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Candidate'} />
+                      <AvatarFallback>{getCandidateName(candidate).split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 text-left">
-                      <p className="text-gray-900">{candidate.name}</p>
-                      <p className="text-sm text-gray-600">{candidate.university} • {candidate.degree}</p>
+                      <p className="text-gray-900">{getCandidateName(candidate)}</p>
+                      <p className="text-sm text-gray-600">{getCandidateUniversity(candidate)}</p>
                       <div className="flex gap-1 mt-1">
-                        {candidate.skills.slice(0, 3).map((skill, idx) => (
+                        {getCandidateSkills(candidate).slice(0, 3).map((skill: string, idx: number) => (
                           <Badge key={idx} variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
                             {skill}
                           </Badge>
@@ -333,7 +375,7 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
                       </div>
                     </div>
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      {candidate.match}% Match
+                      {getCandidateMatch(candidate)}% Match
                     </Badge>
                   </button>
                 ))}
@@ -620,6 +662,7 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
               {candidateSource.map((candidate, index) => (
                 <button
                   key={candidate.id || index}
+                  onClick={() => openCandidateDetails(candidate)}
                   className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all border border-gray-100 hover:border-purple-200 hover:shadow-md"
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -772,6 +815,62 @@ export function RecruiterDashboard({ onLogout, onNavigate }: RecruiterDashboardP
       </div>
 
       {/* Footer */}
+
+      <Drawer open={candidateDetailsOpen} onOpenChange={setCandidateDetailsOpen}>
+        <DrawerContent direction="right">
+          <DrawerHeader>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <DrawerTitle>{selectedCandidateDetail ? getCandidateName(selectedCandidateDetail) : 'Candidate Details'}</DrawerTitle>
+                <DrawerDescription>{selectedCandidateDetail ? getCandidateUniversity(selectedCandidateDetail) : 'Review candidate profile and match information.'}</DrawerDescription>
+              </div>
+              <DrawerClose className="rounded-full p-2 hover:bg-slate-100">
+                ✕
+              </DrawerClose>
+            </div>
+          </DrawerHeader>
+          <div className="p-6 space-y-4 overflow-y-auto">
+            {selectedCandidateDetail ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                    <p className="text-xs text-slate-500 uppercase tracking-[0.2em]">USS Score</p>
+                    <p className="text-3xl font-semibold text-slate-900">{getCandidateUss(selectedCandidateDetail)}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                    <p className="text-xs text-slate-500 uppercase tracking-[0.2em]">Match</p>
+                    <p className="text-3xl font-semibold text-slate-900">{getCandidateMatch(selectedCandidateDetail)}%</p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                  <p className="text-sm text-slate-500 mb-3">Skills</p>
+                  <div className="flex flex-wrap gap-2">
+                    {getCandidateSkills(selectedCandidateDetail).map((skill: string, idx: number) => (
+                      <Badge key={idx} variant="outline" className="bg-white text-slate-700 border-slate-200">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                  <p className="text-sm text-slate-500 mb-3">About</p>
+                  <p className="text-sm text-slate-700 leading-6">
+                    Email: {selectedCandidateDetail.user?.email || selectedCandidateDetail.email || 'Not available'}
+                  </p>
+                  <p className="text-sm text-slate-700 leading-6 mt-2">
+                    University / Branch: {getCandidateUniversity(selectedCandidateDetail)}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-slate-500">Select a candidate to view more details.</p>
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
       <footer className="bg-white/50 backdrop-blur-sm border-t border-gray-200 mt-12 py-6">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 text-center">
           <p className="text-sm text-gray-600">
