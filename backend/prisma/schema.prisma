@@ -21,6 +21,7 @@ model User {
 
   studentProfile   StudentProfile?
   recruiterProfile RecruiterProfile?
+  mentorRequests   MentorRequest[] @relation("MentorAssigned")
 }
 
 model StudentProfile {
@@ -40,10 +41,14 @@ model StudentProfile {
   projects        String    @default("[]")
   internships     String    @default("[]")
   achievements    String    @default("[]")
+  careerGoals     String    @default("[]")
+  readinessMetrics String   @default("{}")
   uss             String    @default("{}")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  careerPlan      CareerPlan?
+  mentorRequests  MentorRequest[]
   applications    Application[]
 }
 
@@ -64,21 +69,69 @@ model RecruiterProfile {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  rolePosts         RolePost[]
   applications      Application[]
 }
 
+model RolePost {
+  id              Int              @id @default(autoincrement())
+  recruiter       RecruiterProfile  @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  recruiterId     Int
+  title           String
+  description     String
+  requiredSkills  String           @default("[]")
+  preferredExperience String?
+  cultureTags     String           @default("[]")
+  minUss          Float            @default(0)
+  salaryRange     String?
+  location        String
+  positions       Int              @default(1)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  applications    Application[]
+}
+
+model MentorRequest {
+  id            Int            @id @default(autoincrement())
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId     Int
+  mentor        User?          @relation("MentorAssigned", fields: [mentorUserId], references: [id])
+  mentorUserId  Int?
+  subject       String
+  message       String
+  status        String         @default("requested")
+  feedback      String?
+  reviewedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model CareerPlan {
+  id          Int            @id @default(autoincrement())
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   Int            @unique
+  goals       String         @default("[]")
+  nextActions String         @default("[]")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
 model Application {
-  id           Int       @id @default(autoincrement())
-  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId    Int
-  recruiter    RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
-  recruiterId  Int
-  roleId       String
-  roleName     String
-  coverLetter  String
-  status       String   @default("applied")
-  ussScore     Float
-  matchScore   Float
-  appliedAt    DateTime @default(now())
-  statusUpdatedAt DateTime? 
+  id             Int              @id @default(autoincrement())
+  student        StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId      Int
+  recruiter      RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  recruiterId    Int
+  rolePost       RolePost?        @relation(fields: [rolePostId], references: [id], onDelete: Cascade)
+  rolePostId     Int?
+  roleId         String?
+  roleName       String
+  coverLetter    String
+  status         String           @default("applied")
+  ussScore       Float
+  matchScore     Float
+  appliedAt      DateTime         @default(now())
+  statusUpdatedAt DateTime?
 }

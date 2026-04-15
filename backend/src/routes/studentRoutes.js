@@ -10,5 +10,9 @@ router.post('/skills', authMiddleware, roleMiddleware('student'), studentControl
 router.post('/projects', authMiddleware, roleMiddleware('student'), studentController.addProject);
 router.post('/internships', authMiddleware, roleMiddleware('student'), studentController.addInternship);
 router.get('/uss-suggestions', authMiddleware, roleMiddleware('student'), studentController.getUssSuggestions);
+router.get('/career-plan', authMiddleware, roleMiddleware('student'), studentController.getCareerPlan);
+router.post('/career-goals', authMiddleware, roleMiddleware('student'), studentController.updateCareerGoals);
+router.post('/mentor-requests', authMiddleware, roleMiddleware('student'), studentController.createMentorRequest);
+router.get('/mentor-requests', authMiddleware, roleMiddleware('student'), studentController.getMentorRequests);
 
 module.exports = router;

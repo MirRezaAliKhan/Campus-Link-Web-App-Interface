@@ -10,6 +10,9 @@ router.put('/weights', authMiddleware, roleMiddleware('recruiter'), recruiterCon
 router.put('/filters', authMiddleware, roleMiddleware('recruiter'), recruiterController.updateFilterPreferences);
 router.get('/candidates', authMiddleware, roleMiddleware('recruiter'), recruiterController.getCandidates);
 router.get('/candidates/:studentId', authMiddleware, roleMiddleware('recruiter'), recruiterController.getCandidateDetail);
-router.post('/roles', authMiddleware, roleMiddleware('recruiter'), recruiterController.addHiringRole);
+router.get('/roles', authMiddleware, roleMiddleware('recruiter'), recruiterController.getRolePosts);
+router.post('/roles', authMiddleware, roleMiddleware('recruiter'), recruiterController.createRolePost);
+router.get('/mentor-requests', authMiddleware, roleMiddleware('recruiter'), recruiterController.getMentorRequests);
+router.get('/role-applicants/:roleId', authMiddleware, roleMiddleware('recruiter'), recruiterController.getRoleApplicants);
 
 module.exports = router;

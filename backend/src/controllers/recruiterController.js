@@ -192,24 +192,100 @@ exports.getCandidateDetail = async (req, res) => {
   }
 };
 
-exports.addHiringRole = async (req, res) => {
+function parseRolePost(post) {
+  const result = { ...post };
+  try { result.requiredSkills = JSON.parse(post.requiredSkills || '[]'); } catch { result.requiredSkills = []; }
+  try { result.cultureTags = JSON.parse(post.cultureTags || '[]'); } catch { result.cultureTags = []; }
+  return result;
+}
+
+exports.getRolePosts = async (req, res) => {
   try {
-    const { title, description, requiredSkills, minimumUss, salary, location, positions } = req.body;
-    const profile = await prisma.recruiterProfile.findUnique({ where: { userId: Number(req.user.userId) } });
-    if (!profile) return res.status(404).json({ message: 'Recruiter profile not found' });
+    const recruiterProfile = await prisma.recruiterProfile.findUnique({ where: { userId: Number(req.user.userId) } });
+    if (!recruiterProfile) return res.status(404).json({ message: 'Recruiter profile not found' });
 
-    const parsedProfile = parseRecruiterProfile(profile);
-    const hiringRoles = [
-      ...parsedProfile.hiringRoles,
-      { title, description, requiredSkills, minimumUss, salary, location, positions }
-    ];
-
-    const updated = await prisma.recruiterProfile.update({
-      where: { id: profile.id },
-      data: { hiringRoles: JSON.stringify(hiringRoles) }
+    const posts = await prisma.rolePost.findMany({
+      where: { recruiterId: recruiterProfile.id },
+      orderBy: { createdAt: 'desc' }
     });
 
-    res.status(200).json({ message: 'Hiring role added successfully', role: hiringRoles[hiringRoles.length - 1] });
+    res.status(200).json(posts.map(parseRolePost));
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+exports.createRolePost = async (req, res) => {
+  try {
+    const { title, description, requiredSkills, preferredExperience, cultureTags, minUss, salaryRange, location, positions } = req.body;
+
+    const recruiterProfile = await prisma.recruiterProfile.findUnique({ where: { userId: Number(req.user.userId) } });
+    if (!recruiterProfile) return res.status(404).json({ message: 'Recruiter profile not found' });
+
+    const role = await prisma.rolePost.create({
+      data: {
+        recruiterId: recruiterProfile.id,
+        title,
+        description,
+        requiredSkills: JSON.stringify(requiredSkills || []),
+        preferredExperience: preferredExperience ?? null,
+        cultureTags: JSON.stringify(cultureTags || []),
+        minUss: minUss ?? 0,
+        salaryRange: salaryRange ?? null,
+        location,
+        positions: positions ?? 1
+      }
+    });
+
+    res.status(201).json({ message: 'Role post created successfully', role: parseRolePost(role) });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+exports.getMentorRequests = async (req, res) => {
+  try {
+    const requests = await prisma.mentorRequest.findMany({
+      where: {
+        OR: [
+          { mentorUserId: Number(req.user.userId) },
+          { status: 'requested' }
+        ]
+      },
+      include: {
+        student: {
+          include: { user: { select: { firstName: true, lastName: true, email: true, profileImage: true } } }
+        },
+        mentor: {
+          select: { firstName: true, lastName: true, email: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.status(200).json(requests);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+exports.getRoleApplicants = async (req, res) => {
+  try {
+    const { roleId } = req.params;
+    const rolePost = await prisma.rolePost.findUnique({ where: { id: Number(roleId) } });
+    if (!rolePost) return res.status(404).json({ message: 'Role post not found' });
+
+    const applicants = await prisma.application.findMany({
+      where: { rolePostId: Number(roleId) },
+      include: {
+        student: {
+          include: { user: { select: { firstName: true, lastName: true, email: true, profileImage: true } } }
+        }
+      },
+      orderBy: { appliedAt: 'desc' }
+    });
+
+    res.status(200).json(applicants);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
